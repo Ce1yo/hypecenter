@@ -982,8 +982,8 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
     <script src="js/image-randomizer.js"></script>
     <script>
-    // Attendre 3 secondes avant de masquer le loader
-    window.addEventListener('load', () => {
+    // Attendre que les images soient prêtes avant de masquer le loader
+    window.addEventListener('imagesReady', () => {
         setTimeout(() => {
             const loader = document.getElementById('loader');
             if (loader) {
@@ -993,7 +993,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     loader.remove();
                 });
             }
-        }, 5000); // Augmenté à 3 secondes
+        }, 500); // Un court délai pour s'assurer que tout est bien chargé
     });
     </script>
 </body>

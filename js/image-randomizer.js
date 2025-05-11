@@ -98,13 +98,40 @@ function shuffleArray(array) {
     return array;
 }
 
+// Fonction pour précharger une image
+function preloadImage(src) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = src;
+    });
+}
+
+// Fonction pour précharger toutes les images
+async function preloadAllImages(shuffledImages) {
+    const preloadPromises = shuffledImages.map(imageName => 
+        preloadImage(`/images/hypecenter/${imageName}`)
+    );
+    return Promise.all(preloadPromises);
+}
+
 // Fonction pour remplacer les images
-function randomizeImages() {
+async function randomizeImages() {
     console.log('Début de randomizeImages');
     
     // Mélanger le tableau d'images
     const shuffledImages = shuffleArray([...images]);
     console.log('Images mélangées:', shuffledImages);
+
+    // Précharger toutes les images
+    console.log('Préchargement des images...');
+    try {
+        await preloadAllImages(shuffledImages);
+        console.log('Toutes les images sont préchargées');
+    } catch (error) {
+        console.error('Erreur lors du préchargement:', error);
+    }
 
     // Sélectionner toutes les images
     const allImages = document.getElementsByTagName('img');
@@ -114,35 +141,35 @@ function randomizeImages() {
     Array.from(allImages).forEach((img, index) => {
         // Vérifier si l'image n'est pas une icône ou une image de favicon
         if (!img.src.includes('favicon') && !img.src.includes('icon')) {
-            const imageIndex = index % shuffledImages.length; // Utiliser le modulo pour boucler sur les images
+            const imageIndex = index % shuffledImages.length;
             const newSrc = `/images/hypecenter/${shuffledImages[imageIndex]}`;
-            console.log(`Remplacement de l'image ${index + 1}:`, newSrc);
-            console.log('Ancienne source:', img.src);
+            img.style.opacity = '0'; // Cacher l'image avant le changement
             img.src = newSrc;
             img.alt = shuffledImages[imageIndex].split('.')[0];
+            // Afficher l'image en fondu une fois chargée
+            img.onload = () => {
+                img.style.transition = 'opacity 0.3s';
+                img.style.opacity = '1';
+            };
         }
     });
 
     console.log('Fin de randomizeImages');
+    return true; // Indique que le remplacement est terminé
 }
 
 // Fonction pour attendre que le DOM soit chargé
 function waitForDOM() {
     return new Promise((resolve) => {
-        // Attendre un peu que le DOM soit stable
-        setTimeout(() => {
-            const images = document.querySelectorAll('.g-flow__card img, .g-flow__item img');
-            console.log('Nombre total d\'images trouvées:', images.length);
-
-            // Si aucune image n'est trouvée, réessayer après un court délai
-            if (images.length === 0) {
-                console.log('Aucune image trouvée, nouvelle tentative...');
-                setTimeout(waitForDOM, 500);
-                return;
+        const check = () => {
+            const images = document.getElementsByTagName('img');
+            if (images.length > 0) {
+                resolve();
+            } else {
+                setTimeout(check, 100);
             }
-
-            resolve();
-        }, 500);
+        };
+        check();
     });
 }
 
@@ -151,6 +178,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.log('Document chargé, attente du DOM...');
     await waitForDOM();
     console.log('DOM chargé, remplacement des images...');
-    randomizeImages();
+    await randomizeImages(); // Attendre que les images soient remplacées
+    
+    // Signaler que les images sont prêtes
+    window.dispatchEvent(new Event('imagesReady'));
 });
 
